@@ -1,0 +1,8 @@
+{
+ "name":"message-sockets",
+ "version":"0.1.0",
+ "description":"a message socket",
+ "keywords": ["sockets"],
+ "dependencies": {"common":">=0.2.0"},
+ "author": "Mathias Buus Madsen <mathiasbuus@gmail.com>"
+}
