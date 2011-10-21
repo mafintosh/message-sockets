@@ -1,4 +1,5 @@
 var delimited = require('./delimited');
+var websock = require('websock');
 var common = require('common');
 var http = require('http');
 var parseURL = require('url').parse;
@@ -64,7 +65,11 @@ exports.connect = function(host) {
 	}
 	host = parseURL(host);
 
-	var transport = delimited.create('\n');
+	if (host.protocol === 'ws:') {
+		return new JSONSocket(websock.connect(host), false);
+	}
+
+	var transport = delimited.create();
 	var socket = new JSONSocket(transport, false);
 	var req = http.request({
 		agent: false,
@@ -77,7 +82,7 @@ exports.connect = function(host) {
 	});
 
 	req.on('upgrade', function(response, connection, head) {
-		transport.onconnection(connection, head);
+		transport.open(connection, head);
 	});
 
 	req.end();
@@ -89,19 +94,33 @@ exports.listen = function(port, onsocket, callback) {
 
 	callback = common.once(callback || noop);
 
-	server.on('upgrade', function(request, connection, head) {
-		connection.write('HTTP/1.1 101 Web Socket Protocol Handshake\r\n'+
-				'Upgrade: jsonsocket\r\n'+
-				'Connection: Upgrade\r\n'+
-				'\r\n');
-		
-		var transport = delimited.create('\n');
+	var ontransport = function(transport) {
 		var socket = new JSONSocket(transport, true);
 
-		transport.onconnection(connection, head);
 		socket.ping();
+		onsocket(socket);		
+	};
+	var onwebsock = websock.onupgrade(ontransport);
 
-		onsocket(socket);
+	server.on('upgrade', function(request, connection, head) {
+		if (request.headers.upgrade !== 'jsonsocket') {
+			onwebsock(request, connection, head);
+			return;
+		}
+		var transport = delimited.create();
+
+		connection.write(''+
+			'HTTP/1.1 101 Web Socket Protocol Handshake\r\n'+
+			'Upgrade: jsonsocket\r\n'+
+			'Connection: Upgrade\r\n'+
+			'\r\n'
+		);
+
+		transport.once('open', function() {
+			ontransport(transport);
+		});
+
+		transport.open(connection, head);
 	});
 
 	server.on('error', callback);

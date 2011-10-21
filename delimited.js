@@ -1,7 +1,10 @@
 var net = require('net');
 var common = require('common');
 
-var parse = function(delimiter, callback) {
+var DELIMETER = '\n';
+
+var noop = function() {};
+var parse = function(callback) {
 	var buffer = '';
 	var lastIndex = 0;
 
@@ -11,7 +14,7 @@ var parse = function(delimiter, callback) {
 
 		buffer += data;
 
-		while ((index = buffer.indexOf(delimiter, index+1)) > -1) {
+		while ((index = buffer.indexOf(DELIMETER, index+1)) > -1) {
 			if (!callback(buffer.substring(lastIndex, index))) {
 				return;
 			}
@@ -24,44 +27,45 @@ var parse = function(delimiter, callback) {
 	};
 };
 
-var Delimited = common.emitter(function(delimiter) {
-	this.delimiter = delimiter;
-	this.writable = false;
+var Delimited = common.emitter(function() {
+	this.writable = this.readable = false;
 });
 
-Delimited.prototype.onconnection = function(connection, head) {
+Delimited.prototype.open = function(connection, head) {
 	var self = this;
 
-	process.nextTick(this.emit.bind(this, 'open'));
-
 	this.connection = connection;
-	this.writable = true;
+	this.writable = this.readable = true;
 
 	connection.setEncoding('utf-8');
 
-	var ondata = parse(this.delimiter, function(message) {
-		self.emit('message', message);
+	var ondata = parse(function(message) {
+		if (self.readable) {
+			self.emit('message', message);		
+		}
 		return self.writable;
 	});
-
+	var onend = function() {
+		connection.end();
+		onclose();		
+	};
 	var onclose = common.once(function() {
-		self.writable = false;
+		self.writable = this.readable = false;
 		self.emit('close');
 	});
 
 	connection.on('data', ondata);
-	connection.on('end', function() {
-		self.writable = false;
-		onclose();
-	});
+	connection.on('end', onend);
 	connection.on('close', onclose);
 
-	if (head && head.length) {
-		ondata(head.toString('utf-8')); // seems risky!
+	this.emit('open');
+
+	if (this.writable && head && head.length) {
+		ondata(head.toString('utf-8'));
 	}
 };
 Delimited.prototype.send = function(message) {
-	this.connection.write(message+this.delimiter);
+	this.connection.write(message+DELIMETER);
 };
 Delimited.prototype.end = Delimited.prototype.close = function() {
 	this.connection.end();
@@ -70,6 +74,6 @@ Delimited.prototype.destroy = function() {
 	this.connection.destroy();
 };
 
-exports.create = function(delimiter) {
-	return new Delimited(delimiter);
+exports.create = function() {
+	return new Delimited();
 };
