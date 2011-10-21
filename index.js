@@ -10,6 +10,7 @@ var JSONSocket = common.emitter(function(connection, open) {
 	var self = this;
 
 	this.connection = connection;
+	this.writable = this.readable = true;
 
 	this._buffer = [];
 	this._ping = null;
@@ -38,6 +39,8 @@ var JSONSocket = common.emitter(function(connection, open) {
 	});
 	connection.on('close', function() {
 		clearInterval(self._ping);
+
+		self.writable = self.readable = true;
 		self.emit('close');
 	});
 });
@@ -46,9 +49,15 @@ JSONSocket.prototype.send = function(message) {
 	this._buffer.push(message);
 };
 JSONSocket.prototype.destroy = function() {
+	if (!this.writable) {
+		return;
+	}
 	this.connection.destroy();
 };
 JSONSocket.prototype.end = function() {
+	if (!this.writable) {
+		return;
+	}
 	this.connection.end();	
 };
 JSONSocket.prototype.ping = function() {
@@ -56,6 +65,9 @@ JSONSocket.prototype.ping = function() {
 };
 
 JSONSocket.prototype._send = function(message) {
+	if (!this.writable) {
+		return;
+	}
 	this.connection.send(JSON.stringify(message));
 };
 
