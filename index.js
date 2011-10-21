@@ -110,7 +110,7 @@ exports.listen = function(port, onsocket, callback) {
 		var transport = delimited.create();
 
 		connection.write(''+
-			'HTTP/1.1 101 Web Socket Protocol Handshake\r\n'+
+			'HTTP/1.1 101 Switching Protocols\r\n'+
 			'Upgrade: jsonsocket\r\n'+
 			'Connection: Upgrade\r\n'+
 			'\r\n'
