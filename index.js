@@ -109,7 +109,15 @@ exports.connect = function(host) {
 	return socket;
 };
 exports.listen = function(port, onsocket, callback) {
-	var server = http.createServer();
+	var server;
+
+	if (typeof port !== 'number') {
+		server = port;
+	} else {
+		server = http.createServer();		
+		server.on('error', callback);
+		server.listen(port, callback);	
+	}
 
 	callback = common.once(callback || noop);
 
@@ -141,9 +149,6 @@ exports.listen = function(port, onsocket, callback) {
 
 		transport.open(connection, head);
 	});
-
-	server.on('error', callback);
-	server.listen(port, callback);	
 
 	return server;
 };
