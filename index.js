@@ -9,6 +9,7 @@ var noop = function() {};
 var JSONSocket = common.emitter(function(connection, open) {
 	var self = this;
 
+	this.address = null;
 	this.connection = connection;
 	this.writable = this.readable = true;
 
@@ -16,11 +17,13 @@ var JSONSocket = common.emitter(function(connection, open) {
 	this._ping = null;
 
 	if (open) {
-		self.send = self._send;
+		this.send = this._send;
+		this.address = connection.address;
 	}
 
 	connection.on('open', function() {
 		self.send = self._send;
+		self.address = connection.address;
 
 		while (self._buffer.length) {
 			self.send(self._buffer.shift());
