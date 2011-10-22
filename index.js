@@ -35,7 +35,14 @@ var JSONSocket = common.emitter(function(connection, open) {
 		if (message === 'pong') {
 			return;
 		}
-		self.emit('message', JSON.parse(message));
+		try {
+			message = JSON.parse(message);
+		}
+		catch (err) {
+			self.destroy();
+			return;
+		}
+		self.emit('message', message);
 	});
 	connection.on('close', function() {
 		clearInterval(self._ping);
