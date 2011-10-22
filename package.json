@@ -1,6 +1,6 @@
 {
  "name":"message-sockets",
- "version":"0.2.4",
+ "version":"0.2.5",
  "description":"a message socket",
  "keywords": ["sockets"],
  "dependencies": {"common":">=0.2.0", "websock":">=0.3.0"},

@@ -29,6 +29,8 @@ var parse = function(callback) {
 
 var Delimited = common.emitter(function() {
 	this.writable = this.readable = false;
+	this.connection = null;
+	this.address = null;
 });
 
 Delimited.prototype.open = function(connection, head) {
@@ -36,6 +38,7 @@ Delimited.prototype.open = function(connection, head) {
 
 	this.connection = connection;
 	this.writable = this.readable = true;
+	this.address = connection.remoteAddress;
 
 	connection.setEncoding('utf-8');
 
