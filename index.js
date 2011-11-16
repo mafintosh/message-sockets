@@ -81,6 +81,9 @@ JSONSocket.prototype._send = function(message) {
 	this.connection.send(JSON.stringify(message));
 };
 
+exports.createSocket = function(transport, open) {
+	return new JSONSocket(transport, open);
+};
 exports.connect = function(host) {
 	if (!/:\/\//.test(host)) {
 		host = 'json://'+host;
