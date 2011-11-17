@@ -136,7 +136,9 @@ exports.listen = function(port, onsocket, callback) {
 	var onwebsock = websock.onupgrade(ontransport);
 
 	server.on('upgrade', function(request, connection, head) {
-		if (request.headers.upgrade !== 'jsonsocket' && request.headers.upgrade !== 'socket') {
+		var upgrade = request.headers.upgrade;
+
+		if (upgrade !== 'jsonsocket' && upgrade !== 'socket') {
 			onwebsock(request, connection, head);
 			return;
 		}
@@ -144,7 +146,7 @@ exports.listen = function(port, onsocket, callback) {
 
 		connection.write(''+
 			'HTTP/1.1 101 Switching Protocols\r\n'+
-			'Upgrade: jsonsocket\r\n'+
+			'Upgrade: '+upgrade+'\r\n'+
 			'Connection: Upgrade\r\n'+
 			'\r\n'
 		);
