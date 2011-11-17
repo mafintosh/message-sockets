@@ -136,7 +136,7 @@ exports.listen = function(port, onsocket, callback) {
 	var onwebsock = websock.onupgrade(ontransport);
 
 	server.on('upgrade', function(request, connection, head) {
-		if (request.headers.upgrade !== 'jsonsocket') {
+		if (request.headers.upgrade !== 'jsonsocket' && request.headers.upgrade !== 'socket') {
 			onwebsock(request, connection, head);
 			return;
 		}
