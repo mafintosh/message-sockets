@@ -7,9 +7,10 @@ var parseURL = require('url').parse;
 
 var noop = function() {};
 
-var JSONSocket = common.emitter(function(connection, open) {
+var JSONSocket = common.emitter(function(connection, open, destination) {
 	var self = this;
 
+	this.destination = destination;
 	this.address = null;
 	this.connection = connection;
 	this.writable = this.readable = true;
@@ -104,18 +105,21 @@ exports.connect = function(host) {
 	if (!/:\/\//.test(host)) {
 		host = 'json://'+host;
 	}
+	var destination = host;
+
 	host = parseURL(host);
 
 	if (host.protocol === 'ws:' || host.protocol === 'wss:') {
-		return new JSONSocket(websock.connect(host), false);
+		return new JSONSocket(websock.connect(host), false, destination);
 	}
 
 	var transport = delimited.create();
-	var socket = new JSONSocket(transport, false);
+	var socket = new JSONSocket(transport, false, destination);
 	var req = (host.protocol === 'jsons:' ? https : http).request({
 		agent: false,
 		port: host.port,
 		host: host.hostname,
+		path: host.path,
 		headers: {
 			'Connection': 'Upgrade',
 			'Upgrade': 'jsonsocket'
@@ -130,24 +134,29 @@ exports.connect = function(host) {
 
 	return socket;
 };
-exports.listen = function(port, onsocket, callback) {
-	var server;
-
-	if (typeof port !== 'number') {
-		server = port;
-	} else {
-		server = http.createServer();		
-		server.on('error', callback);
-		server.listen(port, callback);	
+exports.listen = function(options, onsocket, callback) {
+	if (typeof options === 'number') {
+		options = {port:options};
+	} else if (typeof options.listen === 'function') {
+		options = {server:options};
 	}
 
 	callback = common.once(callback || noop);
+
+	var server = options.server;
+	var sockets = {};
+
+	if (!server) {
+		server = http.createServer();
+		server.on('error', callback);
+		server.listen(options.port, callback);
+	}
 
 	var ontransport = function(transport) {
 		var socket = new JSONSocket(transport, true);
 
 		socket.ping();
-		onsocket(socket);		
+		onsocket(socket);
 	};
 	var onwebsock = websock.onupgrade(ontransport);
 
@@ -173,6 +182,4 @@ exports.listen = function(port, onsocket, callback) {
 
 		transport.open(connection, head);
 	});
-
-	return server;
 };
