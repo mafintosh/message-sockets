@@ -98,8 +98,8 @@ JSONSocket.prototype._send = function(message) {
 	this.connection.send(JSON.stringify(message));
 };
 
-exports.createSocket = function(transport, open) {
-	return new JSONSocket(transport, {open:open});
+exports.createSocket = function(transport, options) {
+	return new JSONSocket(transport, typeof options === 'boolean' ? {open:options} : options);
 };
 exports.connect = function(destination) {
 	if (!/:\/\//.test(destination)) {
