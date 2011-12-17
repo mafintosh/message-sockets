@@ -7,20 +7,21 @@ var parseURL = require('url').parse;
 
 var noop = function() {};
 
-var JSONSocket = common.emitter(function(connection, open, destination) {
+var JSONSocket = common.emitter(function(connection, options) {
 	var self = this;
 
-	this.destination = destination;
+	options = options || {};
+
 	this.address = null;
+	this.destination = options.destination;
 	this.connection = connection;
 	this.writable = this.readable = true;
 
 	this._buffer = [];
 	this._ping = null;
-	this._pong = null;
-	this._lastPong = Date.now();
+	this._pong = true;
 
-	if (open) {
+	if (options.open) {
 		this.send = this._send;
 		this.address = connection.address;
 	}
@@ -40,7 +41,7 @@ var JSONSocket = common.emitter(function(connection, open, destination) {
 			return;
 		}
 		if (message === 'pong') {
-			self._lastPong = Date.now();
+			self._pong = true;
 			return;
 		}
 		try {
@@ -78,12 +79,11 @@ JSONSocket.prototype.end = function() {
 JSONSocket.prototype.ping = function() {
 	var self = this;
 	var ping = function() {
-		var now = Date.now();
-
-		if ((now-self._lastPong) > 2*60*1000) {
+		if (!self._pong) {
 			self.destroy();
 			return;
 		}
+		self._pong = false;
 		self.connection.send('ping');		
 
 	};
@@ -99,22 +99,21 @@ JSONSocket.prototype._send = function(message) {
 };
 
 exports.createSocket = function(transport, open) {
-	return new JSONSocket(transport, open);
+	return new JSONSocket(transport, {open:open});
 };
-exports.connect = function(host) {
-	if (!/:\/\//.test(host)) {
-		host = 'json://'+host;
+exports.connect = function(destination) {
+	if (!/:\/\//.test(destination)) {
+		destination = 'json://'+destination;
 	}
-	var destination = host;
 
-	host = parseURL(host);
+	var host = parseURL(destination);
 
 	if (host.protocol === 'ws:' || host.protocol === 'wss:') {
-		return new JSONSocket(websock.connect(host), false, destination);
+		return new JSONSocket(websock.connect(host), {destination:destination});
 	}
 
 	var transport = delimited.create();
-	var socket = new JSONSocket(transport, false, destination);
+	var socket = new JSONSocket(transport, {destination:destination});
 	var req = (host.protocol === 'jsons:' ? https : http).request({
 		agent: false,
 		port: host.port,
@@ -153,7 +152,7 @@ exports.listen = function(options, onsocket, callback) {
 	}
 
 	var ontransport = function(transport) {
-		var socket = new JSONSocket(transport, true);
+		var socket = new JSONSocket(transport, {open:true});
 
 		socket.ping();
 		onsocket(socket);
