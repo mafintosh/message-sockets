@@ -99,6 +99,7 @@ Delimited.prototype._preclose = function() {
 		return false;
 	}
 
+	this.writable = this.readable = false;
 	this._destroyed = true;
 	this.emit('close');
 

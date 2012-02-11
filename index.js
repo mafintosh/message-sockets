@@ -56,7 +56,7 @@ var JSONSocket = common.emitter(function(connection, options) {
 	connection.on('close', function() {
 		clearInterval(self._ping);
 
-		self.writable = self.readable = true;
+		self.writable = self.readable = false;
 		self.emit('close');
 	});
 });
@@ -77,15 +77,19 @@ JSONSocket.prototype.end = function() {
 	this.connection.end();	
 };
 JSONSocket.prototype.ping = function() {
+	if (!this.writable) {
+		return;
+	}
+
 	var self = this;
 	var ping = function() {
 		if (!self._pong) {
 			self.destroy();
 			return;
 		}
+	
 		self._pong = false;
-		self.connection.send('ping');		
-
+		self.connection.send('ping');
 	};
 
 	this._ping = setInterval(ping, 60*1000);
