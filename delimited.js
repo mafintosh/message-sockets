@@ -37,6 +37,7 @@ var Delimited = common.emitter(function() {
 	this._destroyed = false;
 });
 
+Delimited.prototype.transport = 'delimited';
 Delimited.prototype.open = function(connection, head) {
 	if (this._destroyed) {
 		connection.destroy();

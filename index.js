@@ -10,6 +10,7 @@ var JSONSocket = common.emitter(function(connection, options) {
 
 	options = options || {};
 
+	this.transport = connection.transport;
 	this.address = null;
 	this.destination = options.destination;
 	this.open = !!options.open;
